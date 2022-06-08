@@ -1,4 +1,7 @@
 import { Component } from 'react';
+import PropTypes from 'prop-types';
+
+
 import MarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
@@ -133,6 +136,11 @@ const View = ({char}) => {
             </ul>
         </>
     )
+}
+
+CharInfo.propTypes = {
+    //В свойствах сначала записываем название props который к нам приходит, затем записываем валидацию, то есть то чем оно должно являться
+    charId: PropTypes.number //charId обязательно должен быть числом
 }
 
 export default CharInfo;
