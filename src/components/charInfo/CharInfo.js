@@ -1,60 +1,137 @@
-import './charInfo.scss';
-import thor from '../../resources/img/thor.jpeg';
+import { Component } from 'react';
+import MarvelService from '../../services/MarvelService';
+import Spinner from '../spinner/Spinner';
+import ErrorMessage from '../errorMessage/ErrorMessage';
+import Skeleton from '../skeleton/Skeleton';
 
-const CharInfo = () => {
+import './charInfo.scss';
+
+class CharInfo extends Component {
+
+    state = {
+        char: null, //Заменяем пустой объект на null
+        loading: false, //так как правая часть макета не должна загружаться, автоматическая загрузка false, будет таботать только по клику пользователя
+        error: false//Обработка ошибки
+    }
+
+    marvelService = new MarvelService();//Создаем новое свойство внутри класса RandomChar
+
+    componentDidMount() {
+        this.updateChar();
+    }
+
+    componentDidUpdate(prevProps, prevState) { //Этот компонент срабатывает когда к нам приходит новый пропс или изменяется state или есть 
+                                                //функция которая вызываем принудительную перерисовку. В качестве аргументов получает предыдущее состояние и предыдущие пропсы
+        if (this.props.charId !== prevProps.charId) { //Если новые пришедшие пропсы(id), не равен новым пропсам(id) prevProps.charId, тогда запускаем updateChar()
+            this.updateChar();
+        }                                             
+    }
+
+    // componentDidCatch(err, info) {//Вызывается когда в компоненте произошла ошибка. Принимает 2 аргумента - err это ошибка, а info - инфомрация о компоненте в котором ошибка
+    //     console.log(err, info);
+    //     this.setState({error: true});
+    // }
+
+    updateChar = () => { //Обновление по клику на персонажа данного компонента
+        const {charId} = this.props; //Диструктурируем charId
+        if (!charId) { //Если нет charId, тогда останавливаем метод
+            return;
+        }
+
+        this.onCharLoading();// this.onCharLoading; //перед запросом показывается спиннер
+
+        this.marvelService//Если id есть, тогда делаем запрос на сервер
+            .getCharacter(charId) //В метод getCharacter передаем charId, далее обрабатываем метод через then и cetch
+            .then(this.onCharLoaded) // В onCharLoaded попадает ответ  от сервиса getCharacter, charId попадает в onCharLoaded в касестве аргумента char
+            //и запишется в состояние
+            .catch(this.onError); //В случае ошибки вызывается onError 
+    }
+
+    onCharLoaded = (char) => {
+        this.setState({
+            char,
+            loading: false})
+    }
+
+    onCharLoading = () => { //При запуске метод ставит загрузку в true.Используется между тем когда мы запускаем запросы в работу
+        this.setState ({
+            loading: true
+        })
+    }
+
+    onError = () => {//Метод для ошибки
+        this.setState({
+            loading: false,
+            error: true
+        })
+    } 
+
+    render() {
+        const {char, loading, error} = this.state    //Извлекаем сущности из state
+
+        const skeleton = char || loading || error ? null : <Skeleton/>;//Если не загружен персонаж, не загрузка и не ошибка, то тогда отображаем компонент со скелетоном.
+        //Если char или loading или error выполняется, то мы ничего не рендерим, иначе помещаем в переменную скелетона
+        const errorMessage = error ? <ErrorMessage/> : null; //Спрашиваем есть ли в приложении ошибка? Если да то отображаем компонент с ошибкой
+        const spinner = loading ? <Spinner/> : null;//Спрашиваем есть ли загрузка в компоненте? если да, то возвращаем спиннер
+        const content = !(loading || error || !char) ? <View char={char}/> : null;//Идет за загрузка или не ошибка или персонаж, тогда показываем char
+
+
+        return (
+            <div className="char__info">
+                {skeleton}
+                {errorMessage}
+                {spinner}
+                {content}
+            </div>
+        )
+    }
+}
+
+const View = ({char}) => {
+    const {name, description, thumbnail, homepage, wiki, comics} = char;//вытаскиввем все из объекта char
+
+    //Проверка на отсутствие картинки у персонажа. Если картинки нет, то прописываем доп стили для корректного отображения заглушки
+    let imgStyle = {'objectFit' : 'cover'} //Созадем объект который содержит свойство objectFit со значением cover
+    if (thumbnail === 'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg') { //если приходит картинка-заглушка, тогда меняем cover на contain
+        imgStyle = {'objectFit' : 'contain'} //Далее стиль применяем к изображению
+    }
+    //////////////////////////////////////
+
     return (
-        <div className="char__info">
+        <> {/*Используем реакт-фрагмент так как нет родительского элемента*/}
             <div className="char__basics">
-                <img src={thor} alt="abyss"/>
+                <img src={thumbnail} alt={name} style={imgStyle}/>
                 <div>
-                    <div className="char__info-name">thor</div>
+                    <div className="char__info-name">{name}</div>
                     <div className="char__btns">
-                        <a href="#" className="button button__main">
+                        <a href={homepage} className="button button__main">
                             <div className="inner">homepage</div>
                         </a>
-                        <a href="#" className="button button__secondary">
+                        <a href={wiki} className="button button__secondary">
                             <div className="inner">Wiki</div>
                         </a>
                     </div>
                 </div>
             </div>
             <div className="char__descr">
-                In Norse mythology, Loki is a god or jötunn (or both). Loki is the son of Fárbauti and Laufey, and the brother of Helblindi and Býleistr. By the jötunn Angrboða, Loki is the father of Hel, the wolf Fenrir, and the world serpent Jörmungandr. By Sigyn, Loki is the father of Nari and/or Narfi and with the stallion Svaðilfari as the father, Loki gave birth—in the form of a mare—to the eight-legged horse Sleipnir. In addition, Loki is referred to as the father of Váli in the Prose Edda.
+                {description}
             </div>
             <div className="char__comics">Comics:</div>
             <ul className="char__comics-list">
-                <li className="char__comics-item">
-                    All-Winners Squad: Band of Heroes (2011) #3
-                </li>
-                <li className="char__comics-item">
-                    Alpha Flight (1983) #50
-                </li>
-                <li className="char__comics-item">
-                    Amazing Spider-Man (1999) #503
-                </li>
-                <li className="char__comics-item">
-                    Amazing Spider-Man (1999) #504
-                </li>
-                <li className="char__comics-item">
-                    AMAZING SPIDER-MAN VOL. 7: BOOK OF EZEKIEL TPB (Trade Paperback)
-                </li>
-                <li className="char__comics-item">
-                    Amazing-Spider-Man: Worldwide Vol. 8 (Trade Paperback)
-                </li>
-                <li className="char__comics-item">
-                    Asgardians Of The Galaxy Vol. 2: War Of The Realms (Trade Paperback)
-                </li>
-                <li className="char__comics-item">
-                    Vengeance (2011) #4
-                </li>
-                <li className="char__comics-item">
-                    Avengers (1963) #1
-                </li>
-                <li className="char__comics-item">
-                    Avengers (1996) #1
-                </li>
+                {comics.length > 0 ? null : 'There is no comics with this character'} {/*Если комиксов нет у персонажа, тогда выводим сообщение*/}
+                {
+                    comics.map((item, i) => { //продохим методом map по массиву с комиксами, где item это комикс а i его номер по порядку
+                        if (i > 9) return; //Ограничение на вывод количества комиксов на странице при выборе персонажа
+                        return ( //возвращаем верстку с фрагментом li
+                            <li key={i} className="char__comics-item">
+                                {item.name}
+                            </li>
+                        )
+                    })
+                }
+                
             </ul>
-        </div>
+        </>
     )
 }
 

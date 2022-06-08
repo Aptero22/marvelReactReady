@@ -1,17 +1,12 @@
 import { Component } from 'react';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
-import MarvelServise from '../../services/MarvelServise';
+import MarvelService from '../../services/MarvelService';
 
 import './randomChar.scss';
 import mjolnir from '../../resources/img/mjolnir.png';
 
 class RandomChar extends (Component) {
-    constructor(props) { //Конструктор для вызова updateChar 
-        super(props); 
-            this.updateChar();
-        
-    }
 
     state = {
         char: {},
@@ -19,12 +14,27 @@ class RandomChar extends (Component) {
         error: false//Обработка ошибки
     }
 
-    marvelServise = new MarvelServise();//Создаем новое свойство внутри класса RandomChar
+    marvelService = new MarvelService();//Создаем новое свойство внутри класса RandomChar
+
+    componentDidMount() {
+        this.updateChar();
+        // this.timerId = setInterval(this.updateChar, 3000); //Интервал для обновления персонажей
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.timerId);
+    }
 
     onCharLoaded = (char) => {
         this.setState({
             char,
             loading: false})
+    }
+
+    onCharLoading = () => { //При запуске метод ставит загрузку в true.Используется между тем когда мы запускаем запросы в работу
+        this.setState ({
+            loading: true
+        })
     }
 
     onError = () => {//Метод для ошибки
@@ -36,7 +46,8 @@ class RandomChar extends (Component) {
 
     updateChar = () => {//Метод для обращения к серверу и записи данных в state
         const id = Math.floor(Math.random() * (1011400 - 1011000) + 1011000) ;//случайный id.Math.floor() округляет результат до целого. Далее формула для вычисления
-        this.marvelServise //вызываем один из методов marvelServise
+        this.onCharLoading(); //Когда запускается обновление персонажа, перед тем как сделать запрос ставим спиннер, то есть loading true
+        this.marvelService //вызываем один из методов marvelService
             .getCharacter(id)
             .then(this.onCharLoaded)
             .catch(this.onError)
@@ -62,7 +73,7 @@ class RandomChar extends (Component) {
                     <p className="randomchar__title">
                         Or choose another one
                     </p>
-                    <button className="button button__main">
+                    <button onClick={this.updateChar} className="button button__main"> {/*Навешиваем событие для того чтобы выдавать случайного персонажа по клику*/}
                         <div className="inner">try it</div>
                     </button>
                     <img src={mjolnir} alt="mjolnir" className="randomchar__decoration"/>
@@ -74,10 +85,16 @@ class RandomChar extends (Component) {
 
 const View = ({char}) => { //Объект со всемми данными об персонажах 
     const {name, description, thumbnail, homepage, wiki} = char;
+    //Проверка на отсутствие картинки у персонажа. Если картинки нет, то прописываем доп стили для корректного отображения заглушки
+    let imgStyle = {'objectFit' : 'cover'}
+    if (thumbnail === 'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg') {
+        imgStyle = {'objectFit' : 'contain'}
+    }
+    //////////////////////////////////////
 
     return (
         <div className="randomchar__block">
-            <img src={thumbnail} alt="Random character" className="randomchar__img"/>
+            <img src={thumbnail} alt="Random character" className="randomchar__img" style={imgStyle}/> {/*Вставляем переменную для стилей если url картинки заглушка*/}
             <div className="randomchar__info">
                 <p className="randomchar__name">{name}</p>
                 <p className="randomchar__descr">
