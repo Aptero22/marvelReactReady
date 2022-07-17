@@ -1,46 +1,38 @@
-import { Component } from "react";
+import {lazy, Suspense} from 'react';
+import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+
 import AppHeader from "../appHeader/AppHeader";
-import RandomChar from "../randomChar/RandomChar";
-import CharList from "../charList/CharList";
-import CharInfo from "../charInfo/CharInfo";
-import ErrorBoundary from "../errorBoundary/ErrorBoundary";
+import Spinner from '../spinner/Spinner';
 
-import decoration from '../../resources/img/vision.png';
+const Page404 = lazy(() => import('../pages/404'));
+const MainPage = lazy(() => import('../pages/MainPages'));
+const ComicsPage = lazy(() => import('../pages/ComicsPage'));
+const SingleComicPage = lazy(() => import('../pages/SingleComicPage'));
+const SingleComicLayout = lazy(() => import('../pages/singleComicLayout/SingleComicLayout'));
+const SingleCharacterLayout = lazy(() => import('../pages/singleCharacterLayout/SingleCharacterLayout'));
+const SinglePage = lazy(() => import('../pages/SinglePage'));
 
-class App  extends Component {
-    
-    state = { //Создаем состояние state, описываем свойство
-        selectedChar: null //null указывается так как пока не выбрали еще персонажа
-    }
+const App = () => {
 
-    onCharSelected = (id) => { //Создаем метод для того чтобы устанавливать свойство через аргумент
-        this.setState( {
-            selectedChar: id
-        })
-    }
-
-    render() {
-        return (
+    return (
+        <Router>
             <div className="app">
                 <AppHeader/>
                 <main>
-                    <ErrorBoundary>
-                        <RandomChar/>
-                    </ErrorBoundary>
-                    <div className="char__content">
-                        <ErrorBoundary>
-                            <CharList onCharSelected={this.onCharSelected}/>
-                        </ErrorBoundary>
-                        <ErrorBoundary>
-                            <CharInfo charId ={this.state.selectedChar}/> {/*Передаем id из state*/}
-                        </ErrorBoundary>
-                        
-                    </div>
-                    <img className="bg-decoration" src={decoration} alt="vision"/>
+                    <Suspense fallback={<Spinner/>}>
+                        <Routes>
+                            <Route path="/" element={<MainPage/>}/>
+                            <Route path="/comics" element={<ComicsPage/>}/>
+                            <Route path="*" element={<Page404/>}/>
+                            <Route path="/comics/:id" element={<SinglePage Component={SingleComicLayout} dataType='comic' />} />
+                            <Route path="/characters/:id" element={<SinglePage Component={SingleCharacterLayout} dataType='character' />} />
+                        </Routes>
+                    </Suspense>
                 </main>
             </div>
-        )
-    }
+        </Router>
+    )
+
 }
 
 export default App;
